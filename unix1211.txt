@@ -1,0 +1,840 @@
+"""
+NLP Lab ESE - Complete Solutions
+All questions covered with minimal/no external libraries (only where allowed: nltk for specific tasks)
+"""
+
+============================================================
+SAMPLE DATASET (5-6 sentences used across questions)
+============================================================
+corpus = [
+"John Smith works at Google in New York.",
+"The dogs are running quickly in the park.",
+"She is unhappiness and replayed the international match.",
+"I saw the man with the telescope on the hill.",
+"The bank can guarantee deposits will cover future tuition.",
+"He was playing cricket and the team was winning."
+]
+
+sentence = corpus[0] # Default sentence for single-sentence tasks
+
+============================================================
+Q1. TOKENIZATION (Without Library)
+============================================================
+print("=" * 60)
+print("Q1. TOKENIZATION")
+print("=" * 60)
+
+def sentence_tokenize(text):
+"""Split text into sentences using punctuation markers."""
+sentences = []
+current = ""
+for char in text:
+current += char
+if char in ".!?":
+sentences.append(current.strip())
+current = ""
+if current.strip():
+sentences.append(current.strip())
+return sentences
+
+def word_tokenize(sentence):
+"""Split sentence into words by spaces and remove punctuation."""
+tokens = []
+word = ""
+for char in sentence:
+if char.isalnum() or char == "'":
+word += char
+else:
+if word:
+tokens.append(word)
+word = ""
+if word:
+tokens.append(word)
+return tokens
+
+paragraph = " ".join(corpus)
+sentences = sentence_tokenize(paragraph)
+print("Sentences:")
+for i, s in enumerate(sentences):
+print(f" {i+1}. {s}")
+
+all_tokens = []
+for s in sentences:
+all_tokens.extend(word_tokenize(s))
+
+print(f"\nTotal tokens: {len(all_tokens)}")
+print(f"Sample tokens: {all_tokens[:10]}")
+
+============================================================
+Q2. STOPWORD REMOVAL (Manual)
+============================================================
+print("\n" + "=" * 60)
+print("Q2. STOPWORD REMOVAL")
+print("=" * 60)
+
+stopwords = {"the", "is", "are", "was", "were", "a", "an", "in",
+"on", "at", "and", "or", "but", "he", "she", "it",
+"they", "i", "we", "you", "to", "of", "for", "with",
+"can", "will", "be", "been", "being", "have", "has", "had"}
+
+def remove_stopwords(sentence, stopwords):
+tokens = word_tokenize(sentence.lower())
+return [t for t in tokens if t not in stopwords]
+
+for sent in corpus[:3]:
+cleaned = remove_stopwords(sent, stopwords)
+print(f"Original : {sent}")
+print(f"Cleaned : {cleaned}\n")
+
+============================================================
+Q3. RULE-BASED STEMMER
+============================================================
+print("=" * 60)
+print("Q3. RULE-BASED STEMMER")
+print("=" * 60)
+
+def rule_based_stemmer(word):
+"""Simple rule-based stemmer (no library)."""
+word = word.lower()
+rules = [
+("ational", "ate"),
+("tional", "tion"),
+("enci", "ence"),
+("anci", "ance"),
+("izing", "ize"),
+("isation", "ize"),
+("ization", "ize"),
+("nesses", ""),
+("ness", ""),
+("ments", ""),
+("ment", ""),
+("ations", "ate"),
+("ation", "ate"),
+("ating", "ate"),
+("fulness", "ful"),
+("lessly", "less"),
+("ness", ""),
+("ings", ""),
+("ing", ""),
+("edly", ""),
+("edly", "ed"),
+("ness", ""),
+("ical", "ic"),
+("ness", ""),
+("ful", ""),
+("less", ""),
+("ness", ""),
+("ment", ""),
+("ous", ""),
+("ive", ""),
+("ize", ""),
+("ise", ""),
+("ies", "y"),
+("ied", "y"),
+("sses", "ss"),
+("ess", ""),
+("eds", ""),
+("ed", ""),
+("ers", "er"),
+("er", ""),
+("ly", ""),
+("es", ""),
+("s", ""),
+ ]
+for suffix, replacement in rules:
+if word.endswith(suffix) and len(word) - len(suffix) >= 2:
+return word[: len(word) - len(suffix)] + replacement
+return word
+
+test_words = ["running", "played", "quickly", "happiness", "dogs", "replayed", "winning", "working"]
+print(f"{'Word':<15} {'Stem':<15}")
+print("-" * 30)
+for w in test_words:
+print(f"{w:<15} {rule_based_stemmer(w):<15}")
+
+Porter Stemmer using NLTK (when nltk allowed)
+print("\n--- Porter Stemmer using NLTK ---")
+from nltk.stem import PorterStemmer
+ps = PorterStemmer()
+for w in test_words:
+print(f"{w:<15} {ps.stem(w):<15}")
+
+============================================================
+Q4. MORPHOLOGICAL ANALYSIS (Free & Bound Morphemes)
+============================================================
+print("\n" + "=" * 60)
+print("Q4. MORPHOLOGICAL ANALYSIS")
+print("=" * 60)
+
+Dictionary of known free morphemes (valid standalone words)
+free_morpheme_dict = {
+"happy", "play", "nation", "international", "act", "form",
+"work", "run", "cat", "dog", "book", "green", "kind",
+"help", "love", "friend", "help", "port", "agree", "act",
+"man", "woman", "child", "house", "school", "water", "fire"
+}
+
+Known prefixes and suffixes (bound morphemes)
+prefixes = ["un", "re", "pre", "dis", "mis", "in", "im", "inter", "over", "under", "non"]
+suffixes = ["ness", "tion", "ing", "ed", "ly", "er", "est", "al", "ful", "less",
+"ment", "ous", "ive", "ize", "ise", "ity", "able", "ible", "ary",
+"ory", "ery", "ist", "ism", "ance", "ence", "ship"]
+
+def analyze_morphemes(word):
+word_lower = word.lower()
+parts = []
+remaining = word_lower
+
+# Check prefixes
+for prefix in sorted(prefixes, key=len, reverse=True):
+if remaining.startswith(prefix) and len(remaining) > len(prefix) + 1:
+parts.append((prefix, "bound (prefix)"))
+remaining = remaining[len(prefix):]
+break
+
+# Check suffixes (greedily from longest)
+found_suffixes = []
+temp = remaining
+for suffix in sorted(suffixes, key=len, reverse=True):
+if temp.endswith(suffix) and len(temp) > len(suffix) + 1:
+found_suffixes.append((suffix, "bound (suffix)"))
+temp = temp[: len(temp) - len(suffix)]
+break
+
+root = temp
+if root in free_morpheme_dict or len(root) >= 3:
+parts.append((root, "free"))
+else:
+parts.append((root, "bound (root)"))
+
+parts.extend(found_suffixes)
+return parts
+
+words_to_analyze = ["unhappiness", "replayed", "international", "running", "unkindness"]
+for word in words_to_analyze:
+morphemes = analyze_morphemes(word)
+print(f"\nWord: {word}")
+for morpheme, mtype in morphemes:
+print(f" '{morpheme}' → {mtype}")
+
+============================================================
+Q5. RULE-BASED POS TAGGING
+============================================================
+print("\n" + "=" * 60)
+print("Q5. RULE-BASED POS TAGGING")
+print("=" * 60)
+
+def rule_based_pos_tagger(sentence):
+"""Rule-based POS tagger without any library."""
+tokens = word_tokenize(sentence)
+
+# Static word lists
+determiners = {"the", "a", "an", "this", "that", "these", "those", "my", "your", "his", "her", "its", "our", "their"}
+prepositions = {"in", "on", "at", "with", "by", "for", "to", "of", "from", "into", "over", "under", "about", "between"}
+conjunctions = {"and", "or", "but", "nor", "so", "yet", "for", "although", "because", "since", "while", "if"}
+pronouns = {"i", "you", "he", "she", "it", "we", "they", "me", "him", "her", "us", "them", "who", "whom"}
+auxiliaries = {"is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did",
+"will", "would", "shall", "should", "may", "might", "can", "could", "must"}
+wh_words = {"what", "which", "when", "where", "why", "how"}
+
+tagged = []
+for word in tokens:
+w = word.lower()
+if w in determiners:
+tag = "DT"
+elif w in prepositions:
+tag = "IN"
+elif w in conjunctions:
+tag = "CC"
+elif w in pronouns:
+tag = "PRP"
+elif w in auxiliaries:
+tag = "VBZ"
+elif w in wh_words:
+tag = "WP"
+elif word[0].isupper():
+tag = "NNP" # Proper noun
+elif w.endswith("ly"):
+tag = "RB" # Adverb
+elif w.endswith("ing"):
+tag = "VBG" # Verb gerund
+elif w.endswith("ed"):
+tag = "VBD" # Verb past tense
+elif w.endswith("er") or w.endswith("est"):
+tag = "JJR" # Comparative adjective
+elif w.endswith("tion") or w.endswith("ness") or w.endswith("ment") or w.endswith("ity"):
+tag = "NN" # Noun (abstract)
+elif w.endswith("ful") or w.endswith("ous") or w.endswith("ive") or w.endswith("al"):
+tag = "JJ" # Adjective
+elif w.endswith("s") and not w.endswith("ss"):
+tag = "NNS" # Plural noun (default)
+elif w[-1:].isdigit():
+tag = "CD" # Cardinal number
+else:
+tag = "NN" # Default: noun
+
+tagged.append((word, tag))
+return tagged
+
+for sent in corpus[:3]:
+print(f"\nSentence: {sent}")
+tagged = rule_based_pos_tagger(sent)
+print("Tagged :", tagged)
+
+============================================================
+Q6. AMBIGUITY DETECTION
+============================================================
+print("\n" + "=" * 60)
+print("Q6. AMBIGUITY DETECTION")
+print("=" * 60)
+
+Syntactic ambiguity: sentence can be parsed in 2+ ways due to structure
+Semantic ambiguity: a word/phrase has 2+ meanings
+
+syntactic_examples = [
+"I saw the man with the telescope.", # with telescope: saw using it, or man had it
+"She saw the old man and woman.", # old: man only, or both?
+"Flying planes can be dangerous.", # flying = activity or adjective?
+]
+
+semantic_examples = [
+"The bank can guarantee deposits.", # bank = financial/riverbank?
+"He went to the bat.", # bat = animal or cricket bat?
+"The chicken is ready to eat.", # chicken eating, or ready to be eaten?
+]
+
+Rule-based detection using keyword/pattern heuristics
+def detect_ambiguity(sentence):
+s = sentence.lower()
+
+# Syntactic patterns: PP-attachment, coordination, reduced relative
+syntactic_patterns = ["with", "and", "or", "that", "which", "can be", "flying", "old"]
+# Semantic patterns: polysemous words known to be ambiguous
+semantic_patterns = ["bank", "bat", "bark", "date", "light", "right", "left",
+"bear", "fair", "fine", "mean", "spring", "well", "pitch"]
+
+sem_hits = [w for w in semantic_patterns if w in s.split()]
+syn_hits = [w for w in syntactic_patterns if w in s]
+
+if sem_hits:
+return "Semantic Ambiguity", f"Word(s) with multiple meanings: {sem_hits}"
+if syn_hits:
+return "Syntactic Ambiguity", f"Structural cue(s) found: {syn_hits}"
+return "No clear ambiguity detected", ""
+
+print("Syntactic Examples:")
+for s in syntactic_examples:
+atype, reason = detect_ambiguity(s)
+print(f" [{atype}] {s}")
+print(f" → {reason}")
+
+print("\nSemantic Examples:")
+for s in semantic_examples:
+atype, reason = detect_ambiguity(s)
+print(f" [{atype}] {s}")
+print(f" → {reason}")
+
+============================================================
+Q7. BAG OF WORDS (No Library)
+============================================================
+print("\n" + "=" * 60)
+print("Q7. BAG OF WORDS")
+print("=" * 60)
+
+def build_vocabulary(sentences):
+vocab = set()
+for sent in sentences:
+for token in word_tokenize(sent.lower()):
+vocab.add(token)
+return sorted(vocab)
+
+def build_bow(sentences, vocab):
+bow_matrix = []
+for sent in sentences:
+tokens = word_tokenize(sent.lower())
+vector = [tokens.count(word) for word in vocab]
+bow_matrix.append(vector)
+return bow_matrix
+
+sample_sentences = corpus[:3]
+vocab = build_vocabulary(sample_sentences)
+bow = build_bow(sample_sentences, vocab)
+
+print(f"Vocabulary ({len(vocab)} words): {vocab[:15]}...")
+print(f"\nBoW Matrix (each row = one sentence):")
+header = f"{'Sentence':<5} " + " ".join(f"{w[:6]:>7}" for w in vocab[:10]) + " ..."
+print(header)
+for i, vec in enumerate(bow):
+row = f" S{i+1} " + " ".join(f"{v:>7}" for v in vec[:10])
+print(row)
+
+============================================================
+Q8 & Q9. TF-IDF + COSINE SIMILARITY (Manual, No Library)
+============================================================
+print("\n" + "=" * 60)
+print("Q8 & Q9. TF-IDF + COSINE SIMILARITY")
+print("=" * 60)
+
+import math
+
+def compute_tf(tokens):
+"""Term Frequency = count(word) / total words in doc."""
+tf = {}
+total = len(tokens)
+for t in tokens:
+tf[t] = tf.get(t, 0) + 1
+return {word: count / total for word, count in tf.items()}
+
+def compute_idf(documents):
+"""IDF = log(N / df(word))."""
+N = len(documents)
+idf = {}
+all_words = set(w for doc in documents for w in doc)
+for word in all_words:
+df = sum(1 for doc in documents if word in doc)
+idf[word] = math.log(N / df) if df else 0
+return idf
+
+def compute_tfidf(sentences):
+tokenized = [word_tokenize(s.lower()) for s in sentences]
+idf = compute_idf(tokenized)
+tfidf_docs = []
+for tokens in tokenized:
+tf = compute_tf(tokens)
+tfidf = {word: tf.get(word, 0) * idf.get(word, 0) for word in idf}
+tfidf_docs.append(tfidf)
+return tfidf_docs, idf
+
+def cosine_similarity(vec1, vec2):
+"""cos(θ) = (A·B) / (|A| * |B|)"""
+all_keys = set(vec1) | set(vec2)
+dot_product = sum(vec1.get(k, 0) * vec2.get(k, 0) for k in all_keys)
+mag1 = math.sqrt(sum(v ** 2 for v in vec1.values()))
+mag2 = math.sqrt(sum(v ** 2 for v in vec2.values()))
+if mag1 == 0 or mag2 == 0:
+return 0
+return dot_product / (mag1 * mag2)
+
+tfidf_docs, idf = compute_tfidf(corpus[:3])
+
+print("TF-IDF for Sentence 1 (top 5 words):")
+s1_tfidf = sorted(tfidf_docs[0].items(), key=lambda x: x[1], reverse=True)
+for word, score in s1_tfidf[:5]:
+print(f" {word:<15} {score:.4f}")
+
+print(f"\nCosine Similarity:")
+print(f" S1 vs S2 = {cosine_similarity(tfidf_docs[0], tfidf_docs[1]):.4f}")
+print(f" S1 vs S3 = {cosine_similarity(tfidf_docs[0], tfidf_docs[2]):.4f}")
+print(f" S2 vs S3 = {cosine_similarity(tfidf_docs[1], tfidf_docs[2]):.4f}")
+
+============================================================
+Q11. NAIVE BAYES CLASSIFICATION (with Laplace Smoothing)
+============================================================
+print("\n" + "=" * 60)
+print("Q11. NAIVE BAYES CLASSIFICATION")
+print("=" * 60)
+
+Training data: (text, label)
+train_data = [
+("cricket team winning match", "sports"),
+("team playing football goal", "sports"),
+("election vote government policy", "politics"),
+("parliament minister bill passed", "politics"),
+("stock market economy bank profit", "finance"),
+("investment trade economic growth", "finance"),
+]
+
+def train_naive_bayes(data):
+class_docs = {}
+class_word_counts = {}
+total_docs = len(data)
+
+for text, label in data:
+tokens = word_tokenize(text.lower())
+class_docs[label] = class_docs.get(label, 0) + 1
+if label not in class_word_counts:
+class_word_counts[label] = {}
+for token in tokens:
+class_word_counts[label][token] = class_word_counts[label].get(token, 0) + 1
+
+# Prior probabilities
+priors = {cls: count / total_docs for cls, count in class_docs.items()}
+
+# Vocabulary
+vocab = set(w for text, _ in data for w in word_tokenize(text.lower()))
+
+# Likelihoods with Laplace smoothing
+likelihoods = {}
+for cls, wc in class_word_counts.items():
+total_words = sum(wc.values())
+likelihoods[cls] = {}
+for word in vocab:
+# P(word | class) = (count + 1) / (total_words + |vocab|)
+likelihoods[cls][word] = (wc.get(word, 0) + 1) / (total_words + len(vocab))
+
+return priors, likelihoods, vocab
+
+def predict_naive_bayes(text, priors, likelihoods, vocab):
+tokens = word_tokenize(text.lower())
+scores = {}
+for cls in priors:
+# Use log probabilities to avoid underflow
+score = math.log(priors[cls])
+for token in tokens:
+if token in vocab:
+score += math.log(likelihoods[cls].get(token, 1e-10))
+scores[cls] = score
+return max(scores, key=scores.get), scores
+
+priors, likelihoods, vocab = train_naive_bayes(train_data)
+
+print("Prior Probabilities:")
+for cls, p in priors.items():
+print(f" P({cls}) = {p:.4f}")
+
+test_sentences = [
+"team won the cricket match",
+"economy and stock market growth",
+"government election policy vote",
+]
+print("\nPredictions:")
+for sent in test_sentences:
+pred, scores = predict_naive_bayes(sent, priors, likelihoods, vocab)
+print(f" '{sent}'")
+print(f" → Predicted: {pred}")
+print(f" → Log scores: { {k: round(v,3) for k,v in scores.items()} }")
+
+============================================================
+Q12. HMM – VITERBI ALGORITHM
+============================================================
+print("\n" + "=" * 60)
+print("Q12. HMM – VITERBI ALGORITHM (POS Tagging)")
+print("=" * 60)
+
+"""
+Given:
+States (POS tags): NN, VB, JJ
+Observations (words): sentence tokens
+
+Tables provided (example):
+Transition: P(tag_t | tag_{t-1})
+Emission: P(word | tag)
+"""
+
+--- Transition probabilities P(current_tag | prev_tag) ---
+rows = previous tag, columns = current tag
+states = ["NN", "VB", "JJ"]
+transition = {
+"START": {"NN": 0.5, "VB": 0.3, "JJ": 0.2},
+"NN": {"NN": 0.2, "VB": 0.5, "JJ": 0.3},
+"VB": {"NN": 0.4, "VB": 0.1, "JJ": 0.5},
+"JJ": {"NN": 0.5, "VB": 0.3, "JJ": 0.2},
+}
+
+--- Emission probabilities P(word | tag) ---
+emission = {
+"NN": {"john": 0.3, "smith": 0.2, "dog": 0.3, "park": 0.2},
+"VB": {"runs": 0.4, "works": 0.3, "plays": 0.3},
+"JJ": {"quick": 0.5, "happy": 0.3, "fast": 0.2},
+}
+
+def viterbi(obs, states, transition, emission):
+"""
+Viterbi Algorithm:
+DP table V[t][s] = max probability of being in state s at time t
+Backpointer bp[t][s] = which state led to state s at time t
+"""
+T = len(obs)
+V = [{} for _ in range(T)] # Viterbi table
+bp = [{} for _ in range(T)] # Backpointer table
+
+# Step 1: Initialization (t = 0)
+for s in states:
+emit = emission.get(s, {}).get(obs[0], 1e-10)
+V[0][s] = transition["START"].get(s, 1e-10) * emit
+bp[0][s] = "START"
+
+print("\nViterbi Table:")
+header = f"{'State':<6} " + " ".join(f"{o:>10}" for o in obs)
+print(header)
+
+# Step 2: Recursion
+for t in range(1, T):
+for s in states:
+max_prob, max_state = max(
+(V[t-1][prev] * transition.get(prev, {}).get(s, 1e-10), prev)
+for prev in states
+)
+emit = emission.get(s, {}).get(obs[t], 1e-10)
+V[t][s] = max_prob * emit
+bp[t][s] = max_state
+
+# Print table
+for s in states:
+row = f"{s:<6} " + " ".join(f"{V[t][s]:>10.6f}" for t in range(T))
+print(row)
+
+# Step 3: Backtrack
+best_last = max(states, key=lambda s: V[T-1][s])
+path = [best_last]
+for t in range(T-1, 0, -1):
+path.insert(0, bp[t][path[0]])
+
+return path, [V[t][path[t]] for t in range(T)]
+
+obs_sentence = ["john", "works", "quick"] # example tokens
+print(f"Observation sequence: {obs_sentence}")
+path, probs = viterbi(obs_sentence, states, transition, emission)
+print(f"\nBest POS sequence : {path}")
+print(f"Probabilities : {[round(p, 8) for p in probs]}")
+
+============================================================
+Q13. N-GRAM TEXT GENERATION
+============================================================
+print("\n" + "=" * 60)
+print("Q13. N-GRAM (Bigram & Trigram)")
+print("=" * 60)
+
+def build_ngrams(tokens, n):
+"""Build n-gram list from token list."""
+return [tuple(tokens[i:i+n]) for i in range(len(tokens) - n + 1)]
+
+def build_ngram_freq(sentences, n):
+"""Build frequency dict for n-grams across all sentences."""
+freq = {}
+for sent in sentences:
+tokens = ["<s>"] + word_tokenize(sent.lower()) + ["</s>"]
+ngrams = build_ngrams(tokens, n)
+for gram in ngrams:
+freq[gram] = freq.get(gram, 0) + 1
+return freq
+
+def ngram_probability(sentence, freq_dict, n):
+"""Compute sentence probability using n-gram model."""
+tokens = ["<s>"] + word_tokenize(sentence.lower()) + ["</s>"]
+ngrams = build_ngrams(tokens, n)
+prob = 1.0
+for gram in ngrams:
+prob *= freq_dict.get(gram, 1e-10) # smoothing fallback
+return prob
+
+bigram_freq = build_ngram_freq(corpus, 2)
+trigram_freq = build_ngram_freq(corpus, 3)
+
+print("Top 5 Bigrams:")
+for gram, cnt in sorted(bigram_freq.items(), key=lambda x: -x[1])[:5]:
+print(f" {gram} → {cnt}")
+
+print("\nTop 5 Trigrams:")
+for gram, cnt in sorted(trigram_freq.items(), key=lambda x: -x[1])[:5]:
+print(f" {gram} → {cnt}")
+
+test = "John Smith works"
+print(f"\nBigram prob of '{test}': {ngram_probability(test, bigram_freq, 2):.2e}")
+print(f"Trigram prob of '{test}': {ngram_probability(test, trigram_freq, 3):.2e}")
+
+============================================================
+Q15. REGEX-BASED TEXT CLEANING
+============================================================
+print("\n" + "=" * 60)
+print("Q15. REGEX – TEXT CLEANING & EXTRACTION")
+print("=" * 60)
+
+import re
+
+sample_text = "Hello! @john_doe, check out #NLP2024 on https://nlp.com. Price: $99.99 😊"
+
+print("Original:", sample_text)
+
+Remove punctuation (keep alphanumeric & spaces)
+cleaned = re.sub(r"[^\w\s]", "", sample_text)
+print("Remove punctuation:", cleaned)
+
+Remove numbers
+no_numbers = re.sub(r"\d+", "", sample_text)
+print("Remove numbers:", no_numbers)
+
+Remove special characters (keep letters, spaces, basic punctuation)
+no_special = re.sub(r"[^a-zA-Z0-9\s]", "", sample_text)
+print("Remove special chars:", no_special)
+
+Lowercase
+print("Lowercase:", sample_text.lower())
+
+Extract @mentions
+mentions = re.findall(r"@(\w+)", sample_text)
+print("@Mentions:", mentions)
+
+Extract #hashtags
+hashtags = re.findall(r"#(\w+)", sample_text)
+print("#Hashtags:", hashtags)
+
+Extract URLs
+urls = re.findall(r"https?://\S+", sample_text)
+print("URLs:", urls)
+
+Extract emojis using Unicode range
+emojis = re.findall(r"[\U00010000-\U0010ffff]|[\u2600-\u26FF\u2700-\u27BF]", sample_text)
+print("Emojis:", emojis)
+
+Named groups in regex
+date_text = "Event on 2024-05-15 and deadline 2024-06-30"
+pattern = r"(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})"
+for match in re.finditer(pattern, date_text):
+print(f"Named groups → year={match.group('year')}, month={match.group('month')}, day={match.group('day')}")
+
+Replace: censor email domains
+email_text = "Contact us at user@gmail.com or admin@yahoo.com"
+censored = re.sub(r"@[\w.]+", "@[REDACTED]", email_text)
+print("Censored emails:", censored)
+
+============================================================
+Q16. CFG PARSING (Using NLTK ChartParser)
+============================================================
+print("\n" + "=" * 60)
+print("Q16. CFG PARSING WITH NLTK CHART PARSER")
+print("=" * 60)
+
+import nltk
+
+Define grammar using nltk.CFG.fromstring
+grammar = nltk.CFG.fromstring("""
+S -> NP VP
+NP -> Det N | Det Adj N | N | 'John' | 'Smith'
+VP -> V NP | V NP PP | V
+PP -> P NP
+Det -> 'the' | 'a' | 'an'
+Adj -> 'quick' | 'old' | 'small'
+N -> 'dog' | 'cat' | 'park' | 'telescope' | 'man' | 'hill'
+V -> 'chased' | 'saw' | 'runs' | 'works'
+P -> 'in' | 'on' | 'with'
+""")
+
+parser = nltk.ChartParser(grammar)
+
+test_sentences_cfg = [
+["the", "dog", "chased", "the", "cat"],
+["John", "saw", "the", "man", "with", "the", "telescope"],
+["a", "quick", "dog", "runs"],
+]
+
+for tokens in test_sentences_cfg:
+print(f"\nSentence: {' '.join(tokens)}")
+trees = list(parser.parse(tokens))
+if trees:
+print(f" → {len(trees)} parse tree(s) found")
+if len(trees) > 1:
+print(" → SYNTACTIC AMBIGUITY DETECTED (multiple parse trees)")
+for i, tree in enumerate(trees):
+print(f" Tree {i+1}: {tree}")
+else:
+print(" → Sentence is NOT valid under this grammar.")
+
+============================================================
+Q17. CHUNKING – NOUN PHRASE (Rule-based)
+============================================================
+print("\n" + "=" * 60)
+print("Q17. RULE-BASED NP CHUNKING")
+print("=" * 60)
+
+def chunk_noun_phrases(tagged_sentence):
+"""
+NP rule: (Det)? (Adj)* Noun
+Using rule-based POS tags from Q5.
+"""
+noun_phrases = []
+current_np = []
+in_np = False
+
+dt_tags = {"DT"}
+adj_tags = {"JJ", "JJR"}
+noun_tags= {"NN", "NNS", "NNP"}
+
+for word, tag in tagged_sentence:
+if tag in dt_tags:
+if in_np:
+if current_np:
+noun_phrases.append(current_np)
+current_np = []
+current_np = [word]
+in_np = True
+elif tag in adj_tags and in_np:
+current_np.append(word)
+elif tag in noun_tags:
+current_np.append(word)
+noun_phrases.append(current_np)
+current_np = []
+in_np = False
+else:
+if in_np and current_np:
+noun_phrases.append(current_np)
+current_np = []
+in_np = False
+
+return [" ".join(np) for np in noun_phrases if np]
+
+for sent in corpus[:3]:
+tagged = rule_based_pos_tagger(sent)
+nps = chunk_noun_phrases(tagged)
+print(f"\nSentence: {sent}")
+print(f"NPs found: {nps}")
+
+============================================================
+Q19. NAMED ENTITY RECOGNITION (Without SpaCy/NLTK NER)
+============================================================
+print("\n" + "=" * 60)
+print("Q19. NAMED ENTITY RECOGNITION (Rule-based)")
+print("=" * 60)
+
+Gazetteers (lookup dictionaries)
+known_persons = {"John", "Smith", "Alice", "Bob", "Obama", "Einstein"}
+known_orgs = {"Google", "Microsoft", "SPIT", "NLTK", "Apple", "Amazon"}
+known_locations = {"New", "York", "Mumbai", "India", "London", "Delhi", "Paris"}
+known_dates = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
+"Saturday", "Sunday", "January", "February", "March"}
+
+def named_entity_recognition(sentence):
+tokens = sentence.split()
+entities = []
+i = 0
+
+while i < len(tokens):
+word = re.sub(r"[^\w]", "", tokens[i]) # strip punctuation
+
+# Multi-word entity check (bigram)
+if i + 1 < len(tokens):
+bigram = word + " " + re.sub(r"[^\w]", "", tokens[i+1])
+if bigram.split()[0] in known_persons and bigram.split()[1] in known_persons:
+entities.append((bigram, "PERSON"))
+i += 2
+continue
+if bigram.split()[0] in known_locations and bigram.split()[1] in known_locations:
+entities.append((bigram, "LOCATION"))
+i += 2
+continue
+
+# Single-word entity
+if word in known_persons:
+entities.append((word, "PERSON"))
+elif word in known_orgs:
+entities.append((word, "ORGANIZATION"))
+elif word in known_locations:
+entities.append((word, "LOCATION"))
+elif word in known_dates:
+entities.append((word, "DATE"))
+elif re.match(r"\d{4}", word):
+entities.append((word, "DATE/NUMBER"))
+i += 1
+
+return entities
+
+for sent in corpus:
+ents = named_entity_recognition(sent)
+if ents:
+print(f"\nSentence: {sent}")
+for ent, label in ents:
+print(f" [{label}] {ent}")
+
+print("\n" + "=" * 60)
+print("ALL QUESTIONS COMPLETED.")
+print("=" * 60)
